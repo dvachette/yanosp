@@ -89,6 +89,11 @@ longmode_enter:
 
 ; ─── From here the CPU is in 64-bit long mode ─────────────────────────────────
 bits 64
+
+extern __bss_start
+extern __bss_end
+extern kmain
+
 longmode_64:
     ; Reload data segment registers (null segment is fine in long mode)
     mov ax, 0x10            ; GDT_DATA_SEG
@@ -98,11 +103,25 @@ longmode_64:
     mov gs, ax
     mov ss, ax
 
-    ; Zero-extend ebx to rbx — Multiboot2 boot info address
+    ; Save boot info address before we clobber registers
     mov edi, ebx            ; first argument to kmain (System V AMD64 ABI)
 
-    ; kmain will be called in 1.3 after BSS zeroing
-    ; For now — hang
+    ; Zero BSS — required before any C code runs
+    ; memset(__bss_start, 0, __bss_end - __bss_start)
+    mov rbx, __bss_start
+    mov rcx, __bss_end
+.zero_bss:
+    cmp rbx, rcx
+    jge .done_bss
+    mov byte [rbx], 0
+    inc rbx
+    jmp .zero_bss
+.done_bss:
+
+    ; Call kmain(uint32_t multiboot_info_addr)
+    call kmain
+
+    ; kmain should never return — halt if it does
 .hang:
     hlt
     jmp .hang

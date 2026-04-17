@@ -5,9 +5,10 @@ LD      := $(TARGET)-ld
 ASM     := nasm
 
 # ─── Flags ────────────────────────────────────────────────────────────────────
-CFLAGS   := -std=c11 -ffreestanding -O2 -Wall -Wextra -nostdlib -nostdinc
-LDFLAGS  := -T kernel/linker.ld -nostdlib -m elf_i386
-ASMFLAGS := -f elf32
+CFLAGS   := -std=c11 -ffreestanding -O2 -Wall -Wextra -nostdlib -nostdinc \
+            -I/usr/local/cross/lib/gcc/x86_64-elf/14.1.0/include
+LDFLAGS  := -T kernel/linker.ld -nostdlib
+ASMFLAGS := -f elf64
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 KERNEL_DIR := kernel
