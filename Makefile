@@ -20,9 +20,9 @@ GRUB_DIR   := $(BOOT_DIR)/grub
 KERNEL_ELF := $(BOOT_DIR)/kernel.elf
 ISO        := os.iso
 
-# ─── Sources (auto-detected) ──────────────────────────────────────────────────
-ASM_SRCS := $(wildcard $(KERNEL_DIR)/*.asm)
-C_SRCS   := $(wildcard $(KERNEL_DIR)/*.c)
+# ─── Sources (auto-detected recursively) ─────────────────────────────────────
+ASM_SRCS := $(shell find $(KERNEL_DIR) -name '*.asm')
+C_SRCS   := $(shell find $(KERNEL_DIR) -name '*.c')
 
 ASM_OBJS := $(patsubst $(KERNEL_DIR)/%.asm, $(BUILD_DIR)/%.o, $(ASM_SRCS))
 C_OBJS   := $(patsubst $(KERNEL_DIR)/%.c,   $(BUILD_DIR)/%.o, $(C_SRCS))
@@ -37,12 +37,14 @@ all: $(ISO)
 $(KERNEL_ELF): $(OBJS) | $(BOOT_DIR)
 	$(LD) $(LDFLAGS) -o $@ $^
 
-# Assemble .asm → build/*.o
+# Assemble .asm → build/**/*.o
 $(BUILD_DIR)/%.o: $(KERNEL_DIR)/%.asm | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(ASM) $(ASMFLAGS) $< -o $@
 
-# Compile .c → build/*.o
+# Compile .c → build/**/*.o
 $(BUILD_DIR)/%.o: $(KERNEL_DIR)/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Build ISO image

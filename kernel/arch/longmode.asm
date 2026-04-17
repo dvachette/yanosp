@@ -1,8 +1,8 @@
 bits 32
 
-; ─── Temporary page tables (identity map + higher half) ───────────────────────
-; Each table is 4KB aligned, zeroed at boot
-section .bss
+; ─── Temporary boot page tables ───────────────────────────────────────────────
+; Placed in .boot_bss — excluded from BSS zeroing
+section .boot_bss
 align 4096
 pml4:   resb 4096
 pdpt:   resb 4096
@@ -27,33 +27,24 @@ longmode_enter:
 
     mov eax, 0x80000001
     cpuid
-    test edx, (1 << 29)     ; LM bit
+    test edx, (1 << 29)
     jz  .no_longmode
 
     ; 2) Build minimal page tables
-    ;    We map the first 1GB twice:
-    ;      identity map : 0x000000000 → 0x000000000  (needed during the switch)
-    ;      higher half  : 0xFFFFFFFF80000000 → 0x000000000  (kernel lives here)
-
-    ; PML4[0] → pdpt  (identity)
     mov eax, pdpt
-    or  eax, 0x3            ; present + writable
+    or  eax, 0x3
     mov [pml4], eax
-
-    ; PML4[511] → pdpt  (higher half — index 511 = 0xFFFF...80000000)
     mov [pml4 + 511 * 8], eax
 
-    ; PDPT[0] → pd
     mov eax, pd
     or  eax, 0x3
     mov [pdpt], eax
 
-    ; Map 512 × 2MB huge pages in PD → covers 0..1GB
     mov ecx, 0
 .map_pd:
-    mov eax, 0x200000       ; 2MB
-    mul ecx                 ; eax = ecx * 2MB
-    or  eax, 0x83           ; present + writable + huge page (PS bit)
+    mov eax, 0x200000
+    mul ecx
+    or  eax, 0x83
     mov [pd + ecx * 8], eax
     inc ecx
     cmp ecx, 512
@@ -63,24 +54,23 @@ longmode_enter:
     mov eax, pml4
     mov cr3, eax
 
-    ; 4) Enable PAE (bit 5 of cr4)
+    ; 4) Enable PAE
     mov eax, cr4
     or  eax, (1 << 5)
     mov cr4, eax
 
-    ; 5) Set LME bit in EFER MSR (0xC0000080)
+    ; 5) Set LME in EFER
     mov ecx, 0xC0000080
     rdmsr
-    or  eax, (1 << 8)       ; LME
+    or  eax, (1 << 8)
     wrmsr
 
-    ; 6) Enable paging (bit 31 of cr0) — triggers long mode
+    ; 6) Enable paging
     mov eax, cr0
     or  eax, (1 << 31)
     mov cr0, eax
 
-    ; 7) Far jump to 64-bit code segment (flushes instruction pipeline)
-    ;    0x08 = GDT_CODE_SEG (kernel code, 64-bit, L=1)
+    ; 7) Far jump to 64-bit code segment
     jmp 0x08:longmode_64
 
 .no_longmode:
@@ -95,8 +85,7 @@ extern __bss_end
 extern kmain
 
 longmode_64:
-    ; Reload data segment registers (null segment is fine in long mode)
-    mov ax, 0x10            ; GDT_DATA_SEG
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax

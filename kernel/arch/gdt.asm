@@ -45,9 +45,10 @@ GDT_DATA_SEG equ gdt_data - gdt_start   ; = 0x10
 section .text
 global gdt_load
 gdt_load:
-    lgdt [gdt_descriptor]   ; load GDT register
+    lgdt [gdt_descriptor]
 
-    ; Reload data segment registers with the new data selector
+    ; Reload data segments only — CS is left unchanged until longmode_enter
+    ; (our GDT only has 64-bit code segment, reloading CS here would fault)
     mov ax, GDT_DATA_SEG
     mov ds, ax
     mov es, ax
@@ -55,11 +56,4 @@ gdt_load:
     mov gs, ax
     mov ss, ax
 
-    ; Reload CS via a far return — the only way to change CS in 32-bit mode
-    ; push return segment (code selector) then return address, then retf
-    push dword GDT_CODE_SEG
-    push dword .reload_cs
-    retf
-
-.reload_cs:
     ret

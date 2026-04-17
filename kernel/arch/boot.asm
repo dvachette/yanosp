@@ -45,7 +45,6 @@ _start:
     call gdt_load               ; load GDT and reload segment registers
     call longmode_enter         ; switch to 64-bit long mode (does not return)
 
-    ; Infinite loop — kmain() will be called here in 1.3
 .hang:
     hlt
     jmp .hang

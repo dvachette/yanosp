@@ -25,6 +25,11 @@ SECTIONS
         *(.data)
     }
 
+    /* Boot page tables — excluded from BSS zeroing */
+    .boot_bss : {
+        *(.boot_bss)
+    }
+
     /* Uninitialized globals — zeroed by boot.asm before kmain() */
     .bss : {
         __bss_start = .;        /* symbol exposed to boot.asm */
