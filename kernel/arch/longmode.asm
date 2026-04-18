@@ -18,6 +18,8 @@ global  longmode_64
 ; Called from boot.asm (32-bit)
 ; ebx = Multiboot2 boot info address (preserved throughout)
 longmode_enter:
+    ; Save multiboot info address — cpuid clobbers ebx
+    mov esi, ebx
 
     ; 1) Check CPU supports long mode
     mov eax, 0x80000000
@@ -71,6 +73,8 @@ longmode_enter:
     mov cr0, eax
 
     ; 7) Far jump to 64-bit code segment
+    ; Restore multiboot info address from esi into ebx for longmode_64
+    mov ebx, esi
     jmp 0x08:longmode_64
 
 .no_longmode:
@@ -92,22 +96,22 @@ longmode_64:
     mov gs, ax
     mov ss, ax
 
-    ; Save boot info address before we clobber registers
-    mov edi, ebx            ; first argument to kmain (System V AMD64 ABI)
+    ; Move boot info address to edi AFTER segment reload
+    ; ebx is preserved across the far jump
+    mov edi, ebx
 
-    ; Zero BSS — required before any C code runs
-    ; memset(__bss_start, 0, __bss_end - __bss_start)
-    mov rbx, __bss_start
-    mov rcx, __bss_end
+    ; Zero BSS — use r8/r9 to avoid clobbering rdi
+    mov r8, __bss_start
+    mov r9, __bss_end
 .zero_bss:
-    cmp rbx, rcx
+    cmp r8, r9
     jge .done_bss
-    mov byte [rbx], 0
-    inc rbx
+    mov byte [r8], 0
+    inc r8
     jmp .zero_bss
 .done_bss:
 
-    ; Call kmain(uint32_t multiboot_info_addr)
+    ; edi = multiboot_info_addr → first argument to kmain
     call kmain
 
     ; kmain should never return — halt if it does

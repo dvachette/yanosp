@@ -6,6 +6,7 @@ ASM     := nasm
 
 # ─── Flags ────────────────────────────────────────────────────────────────────
 CFLAGS   := -std=c11 -ffreestanding -O2 -Wall -Wextra -nostdlib -nostdinc \
+            -mno-sse -mno-sse2 -mno-mmx -mno-avx                          \
             -I/usr/local/cross/lib/gcc/x86_64-elf/14.1.0/include
 LDFLAGS  := -T kernel/linker.ld -nostdlib
 ASMFLAGS := -f elf64
