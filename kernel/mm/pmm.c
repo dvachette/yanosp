@@ -118,7 +118,9 @@ void *pmm_alloc(void) {
     return NULL;
 }
 
-/* ─── pmm_free ──────────────────────────────────────────────────────────── */
+uint64_t pmm_get_total_ram(void) {
+    return total_frames * PAGE_SIZE;
+}
 void pmm_free(void *addr) {
     uint64_t frame = (uint64_t)addr / PAGE_SIZE;
     bitmap_clear(frame);
